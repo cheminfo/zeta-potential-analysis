@@ -1,7 +1,7 @@
 import type { MeasurementXY, MeasurementXYVariables } from 'cheminfo-types';
 import { Analysis } from 'common-spectrum';
 import type { ZetasizerRecord } from 'parse-zetasizer';
-import { fromText } from 'parse-zetasizer';
+import { fromText, getArray } from 'parse-zetasizer';
 
 interface FromZetasizerOptions {
   /** Unique identifier for the analysis. */
@@ -59,8 +59,8 @@ export function fromZetasizer(
 function buildVariables(
   record: ZetasizerRecord,
 ): MeasurementXYVariables<Float64Array> | undefined {
-  const zetaPotentials = record.arrays['Zeta Potentials'];
-  const intensities = record.arrays.Intensities;
+  const zetaPotentials = getArray(record, 'Zeta Potentials');
+  const intensities = getArray(record, 'Intensities');
 
   if (!zetaPotentials?.data.length || !intensities?.data.length) {
     return undefined;
