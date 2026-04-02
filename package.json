@@ -33,7 +33,7 @@
     "tsc-build": "tsc --project tsconfig.build.json"
   },
   "dependencies": {
-    "cheminfo-types": "^1.14.0",
+    "cheminfo-types": "^1.15.0",
     "common-spectrum": "^3.2.0",
     "parse-zetasizer": "^1.2.0"
   },

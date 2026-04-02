@@ -1,7 +1,14 @@
-import type { MeasurementXY, MeasurementXYVariables } from 'cheminfo-types';
+import type {
+  MeasurementXY,
+  MeasurementXYVariables,
+  ZetaPotentialMeta,
+} from 'cheminfo-types';
 import { Analysis } from 'common-spectrum';
+import type { TextData } from 'ensure-string';
 import type { ZetasizerRecord } from 'parse-zetasizer';
 import { fromText, getArray } from 'parse-zetasizer';
+
+import type { ZetaPotentialCheminfo } from '../types.ts';
 
 interface FromZetasizerOptions {
   /** Unique identifier for the analysis. */
@@ -18,25 +25,31 @@ interface FromZetasizerOptions {
  * Known array columns (Zeta Potentials, Intensities) are mapped to
  * standard variable symbols (x, y). Records missing Zeta Potentials or
  * Intensities are skipped.
- * @param text - The raw text content of a Zetasizer export file
+ * @param data - The raw content of a Zetasizer export file (string, ArrayBuffer, or typed array)
  * @param options - Options for the analysis
  * @returns An Analysis containing one spectrum per measurement
  */
 export function fromZetasizer(
-  text: string,
+  data: TextData,
   options: FromZetasizerOptions = {},
 ): Analysis {
   const analysis = new Analysis(options);
-  const records = fromText(text);
+  const records = fromText(data);
 
   for (const record of records) {
     const variables = buildVariables(record);
     if (!variables) continue;
 
+    const meta = extractMeta(record);
+    const cheminfo = extractCheminfo(record);
+    if (cheminfo) {
+      meta.cheminfo = cheminfo;
+    }
+
     analysis.pushSpectrum(variables, {
       title: extractTitle(record),
       dataType: 'Zeta potential measurement',
-      meta: extractMeta(record),
+      meta,
     });
 
     const spectrum = analysis.spectra.at(-1);
@@ -66,7 +79,7 @@ function buildVariables(
     return undefined;
   }
 
-  return {
+  const variables: MeasurementXYVariables<Float64Array> = {
     x: {
       symbol: 'x',
       label: 'Zeta potential',
@@ -82,6 +95,30 @@ function buildVariables(
       isDependent: true,
     },
   };
+
+  const times = getArray(record, 'Times');
+  if (times?.data.length) {
+    variables.t = {
+      symbol: 't',
+      label: 'Time',
+      units: times.units || 's',
+      data: times.data,
+      isDependent: false,
+    };
+  }
+
+  const phases = getArray(record, 'Phases');
+  if (phases?.data.length) {
+    variables.p = {
+      symbol: 'p',
+      label: 'Phase',
+      units: phases.units || 'rad',
+      data: phases.data,
+      isDependent: true,
+    };
+  }
+
+  return variables;
 }
 
 /**
@@ -111,6 +148,97 @@ function extractMeta(record: ZetasizerRecord): Record<string, unknown> {
   }
 
   return meta;
+}
+
+/**
+ * Build standardized cheminfo metadata from a Zetasizer record.
+ *
+ * Extracts zeta potential, deviation, mobility, conductivity, and count rates.
+ * @param record - Parsed Zetasizer record
+ * @returns ZetaPotentialCheminfo object, or undefined if no relevant data is found
+ */
+function extractCheminfo(
+  record: ZetasizerRecord,
+): ZetaPotentialCheminfo | undefined {
+  const { meta } = record;
+  const zpMeta: ZetaPotentialMeta = {};
+
+  const zetaPotential = getNumber(meta, 'Zeta Potential (mV)');
+  if (zetaPotential !== undefined) {
+    zpMeta.zetaPotential = { value: zetaPotential, units: 'mV' };
+  }
+
+  const zetaDeviation = getNumber(meta, 'Zeta Deviation (mV)');
+  if (zetaDeviation !== undefined) {
+    zpMeta.zetaDeviation = { value: zetaDeviation, units: 'mV' };
+  }
+
+  const mobility = getMobility(meta);
+  if (mobility !== undefined) {
+    zpMeta.mobility = { value: mobility, units: 'µm·cm/Vs' };
+  }
+
+  const conductivity = getNumber(meta, 'Conductivity (mS/cm)');
+  if (conductivity !== undefined) {
+    zpMeta.conductivity = { value: conductivity, units: 'mS/cm' };
+  }
+
+  const derivedMeanCountRate = getNumber(meta, 'Derived Count Rate (kcps)');
+  if (derivedMeanCountRate !== undefined) {
+    zpMeta.derivedMeanCountRate = {
+      value: derivedMeanCountRate,
+      units: 'kcps',
+    };
+  }
+
+  const meanCountRate = getNumber(meta, 'Mean Count Rate (kcps)');
+  if (meanCountRate !== undefined) {
+    zpMeta.meanCountRate = { value: meanCountRate, units: 'kcps' };
+  }
+
+  const qualityFactor = getNumber(meta, 'Quality Factor');
+  if (qualityFactor !== undefined) {
+    zpMeta.qualityFactor = qualityFactor;
+  }
+
+  if (Object.keys(zpMeta).length === 0) {
+    return undefined;
+  }
+
+  return { meta: zpMeta };
+}
+
+/**
+ * Get a numeric value from the record meta, or undefined if not present.
+ * @param meta - Record metadata
+ * @param key - Meta key to look up
+ * @returns The numeric value, or undefined
+ */
+function getNumber(
+  meta: Record<string, boolean | number | string>,
+  key: string,
+): number | undefined {
+  const value = meta[key];
+  return typeof value === 'number' ? value : undefined;
+}
+
+/**
+ * Extract the electrophoretic mobility value from the record metadata.
+ *
+ * The key contains a µ character whose encoding depends on how the file
+ * was read (latin1 vs utf-8), so we search by prefix.
+ * @param meta - Record metadata
+ * @returns The mobility value, or undefined
+ */
+function getMobility(
+  meta: Record<string, boolean | number | string>,
+): number | undefined {
+  for (const [key, value] of Object.entries(meta)) {
+    if (key.startsWith('Mobility') && typeof value === 'number') {
+      return value;
+    }
+  }
+  return undefined;
 }
 
 /**
