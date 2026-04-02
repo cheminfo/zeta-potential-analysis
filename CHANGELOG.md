@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/cheminfo/zeta-potential-analysis/compare/v1.0.1...v1.1.0) (2026-04-02)
+
+
+### Features
+
+* add time/phase variables, standardized cheminfo metadata, and accept binary input ([661b2eb](https://github.com/cheminfo/zeta-potential-analysis/commit/661b2eb89c8cf94023a4a761950992071d0ec620))
+
 ## [1.0.1](https://github.com/cheminfo/zeta-potential-analysis/compare/v1.0.0...v1.0.1) (2026-04-02)
 
 
