@@ -5,8 +5,14 @@ import { expect, test } from 'vitest';
 
 import { fromZetasizer } from '../../index.ts';
 
-const testFilePath = join(import.meta.dirname, 'data/zetaPotential.txt');
-const text = readFileSync(testFilePath, 'utf8');
+const text = readFileSync(
+  join(import.meta.dirname, 'data/zetaPotential.txt'),
+  'utf8',
+);
+const textChb = readFileSync(
+  join(import.meta.dirname, 'data/zetaPotential-chb.txt'),
+  'utf8',
+);
 
 test('file produces 1 spectrum', () => {
   const analysis = fromZetasizer(text);
@@ -80,4 +86,21 @@ test('settings contain instrument info', () => {
       version: '8.02',
     },
   });
+});
+
+test('zetaPotential-chb produces 4 spectra', () => {
+  const analysis = fromZetasizer(textChb);
+
+  expect(analysis.spectra).toHaveLength(4);
+
+  for (const spectrum of analysis.spectra) {
+    expect(spectrum.dataType).toBe('Zeta potential measurement');
+    expect(spectrum.variables.x.data).toBeInstanceOf(Float64Array);
+    expect(spectrum.variables.y.data).toBeInstanceOf(Float64Array);
+    expect(spectrum.variables.x.label).toBe('Zeta potential');
+    expect(spectrum.variables.x.units).toBe('mV');
+  }
+
+  expect(analysis.spectra[0]?.title).toBe('SD283 - F1, HBG6.4, 0h 1');
+  expect(analysis.spectra[3]?.title).toBe('SD283 - F1, HBG6.4, 0h 4');
 });
