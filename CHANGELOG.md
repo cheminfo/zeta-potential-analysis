@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/cheminfo/zeta-potential-analysis/compare/v1.1.0...v1.2.0) (2026-04-17)
+
+
+### Features
+
+* add fromZmes to parse zeta potential data from .zmes files ([871a663](https://github.com/cheminfo/zeta-potential-analysis/commit/871a663e5f0d5b887b9ebeb177d920a81e3b3ed5))
+
 ## [1.1.0](https://github.com/cheminfo/zeta-potential-analysis/compare/v1.0.1...v1.1.0) (2026-04-02)
 
 
