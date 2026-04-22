@@ -9,6 +9,9 @@ const data = readFileSync(join(import.meta.dirname, 'data/zetaPotential.txt'));
 const dataChb = readFileSync(
   join(import.meta.dirname, 'data/zetaPotential-chb.txt'),
 );
+const dataMxdFull = readFileSync(
+  join(import.meta.dirname, 'data/zetaPotential_mxd_full.txt'),
+);
 
 test('file produces 1 spectrum', () => {
   const analysis = fromZetasizer(data);
@@ -153,4 +156,24 @@ test('simple file does not include time and phase variables', () => {
 
   expect(spectrum?.variables.t).toBeUndefined();
   expect(spectrum?.variables.p).toBeUndefined();
+});
+
+test('zetaPotential_mxd_full produces 3 spectra even without distribution arrays', () => {
+  const analysis = fromZetasizer(dataMxdFull);
+
+  expect(analysis.spectra).toHaveLength(3);
+
+  for (const spectrum of analysis.spectra) {
+    expect(spectrum.dataType).toBe('Zeta potential measurement');
+    expect(spectrum.variables.x.data).toBeInstanceOf(Float64Array);
+    expect(spectrum.variables.x.data).toHaveLength(0);
+    expect(spectrum.variables.y.data).toBeInstanceOf(Float64Array);
+    expect(spectrum.variables.y.data).toHaveLength(0);
+    expect(spectrum.variables.x.label).toBe('Zeta potential');
+    expect(spectrum.variables.x.units).toBe('mV');
+  }
+
+  expect(analysis.spectra[0]?.title).toBe('20250325_MMA_CuCl2_Anisole_24h 1');
+  expect(analysis.spectra[1]?.title).toBe('20250325_MMA_CuCl2_Anisole_24h 2');
+  expect(analysis.spectra[2]?.title).toBe('20250325_MMA_CuCl2_Anisole_24h 3');
 });

@@ -23,8 +23,8 @@ interface FromZetasizerOptions {
  *
  * The parser dynamically discovers whatever columns the file contains.
  * Known array columns (Zeta Potentials, Intensities) are mapped to
- * standard variable symbols (x, y). Records missing Zeta Potentials or
- * Intensities are skipped.
+ * standard variable symbols (x, y). Records of type Zeta are always
+ * included; those without distribution arrays will have empty x/y data.
  * @param data - The raw content of a Zetasizer export file (string, ArrayBuffer, or typed array)
  * @param options - Options for the analysis
  * @returns An Analysis containing one spectrum per measurement
@@ -46,11 +46,17 @@ export function fromZetasizer(
       meta.cheminfo = cheminfo;
     }
 
-    analysis.pushSpectrum(variables, {
+    const spectrumBase = {
       title: extractTitle(record),
       dataType: 'Zeta potential measurement',
       meta,
-    });
+    };
+
+    if (variables.x.data.length > 0) {
+      analysis.pushSpectrum(variables, spectrumBase);
+    } else {
+      analysis.spectra.push({ variables, ...spectrumBase });
+    }
 
     const spectrum = analysis.spectra.at(-1);
     if (spectrum) {
@@ -72,26 +78,24 @@ export function fromZetasizer(
 function buildVariables(
   record: ZetasizerRecord,
 ): MeasurementXYVariables<Float64Array> | undefined {
+  if (record.meta.Type !== 'Zeta') return undefined;
+
   const zetaPotentials = getArray(record, 'Zeta Potentials');
   const intensities = getArray(record, 'Intensities');
-
-  if (!zetaPotentials?.data.length || !intensities?.data.length) {
-    return undefined;
-  }
 
   const variables: MeasurementXYVariables<Float64Array> = {
     x: {
       symbol: 'x',
       label: 'Zeta potential',
-      units: zetaPotentials.units || 'mV',
-      data: zetaPotentials.data,
+      units: zetaPotentials?.units || 'mV',
+      data: zetaPotentials?.data ?? new Float64Array(),
       isDependent: false,
     },
     y: {
       symbol: 'y',
       label: 'Intensity',
-      units: intensities.units || '',
-      data: intensities.data,
+      units: intensities?.units || '',
+      data: intensities?.data ?? new Float64Array(),
       isDependent: true,
     },
   };
