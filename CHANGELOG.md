@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/cheminfo/zeta-potential-analysis/compare/v1.2.0...v1.3.0) (2026-04-22)
+
+
+### Features
+
+* include Zeta records without distribution arrays as empty spectra ([7ae3c82](https://github.com/cheminfo/zeta-potential-analysis/commit/7ae3c82cbfdba6dd6c3a4f45714784d10d26b1f6))
+
 ## [1.2.0](https://github.com/cheminfo/zeta-potential-analysis/compare/v1.1.0...v1.2.0) (2026-04-17)
 
 
